@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Fuerza Para Correr</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════
+     SCREEN: HOME
+════════════════════════════════════ -->
+<div id="s-home" class="screen active">
+  <div class="home-top">
+    <span class="app-icon">🏃</span>
+    <div class="app-title">Fuerza Para Correr</div>
+    <div class="app-sub">5 ejercicios · 3 rondas · ~25 min</div>
+  </div>
+
+  <div class="streak-card mb-16">
+    <span class="streak-icon" id="streak-icon">⚡</span>
+    <span class="streak-num" id="streak-num">0</span>
+    <div class="streak-lbl" id="streak-lbl">días de racha</div>
+  </div>
+
+  <button class="btn btn-primary mb-24" onclick="startWorkout()">Comenzar rutina</button>
+
+  <div class="section-title">Historial reciente</div>
+  <div class="hist-list" id="hist-list">
+    <div class="hist-empty">Aún no hay rutinas guardadas</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SCREEN: WORKOUT
+════════════════════════════════════ -->
+<div id="s-workout" class="screen">
+  <div class="prog-header">
+    <div class="prog-row">
+      <span id="w-prog-txt">Ejercicio 1 de 5 · Serie 1 de 3</span>
+      <span class="prog-pct" id="w-prog-pct">0%</span>
+    </div>
+    <div class="prog-track">
+      <div class="prog-fill" id="w-prog-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="ex-card">
+    <div id="ex-card-inner" class="ex-card-inner">
+      <span class="ex-icon"   id="ex-icon">🏋️</span>
+      <div class="ex-name"    id="ex-name">Sentadilla</div>
+      <div class="ex-target"  id="ex-target">15 repeticiones</div>
+
+      <div class="sets-row">
+        <div class="set-bar" id="bar-0"></div>
+        <div class="set-bar" id="bar-1"></div>
+        <div class="set-bar" id="bar-2"></div>
+      </div>
+
+      <div class="ex-set-lbl" id="ex-set-lbl">Serie 1 de 3</div>
+
+      <!-- Plank countdown (visible only when timer exercise is running) -->
+      <div class="plank-wrap" id="plank-wrap">
+        <div class="ring-box">
+          <svg viewBox="0 0 100 100" style="transform:rotate(-90deg)">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="#1a2235" stroke-width="8"/>
+            <circle id="plank-ring" cx="50" cy="50" r="44" fill="none"
+                    stroke="#4d9eff" stroke-width="8"
+                    stroke-linecap="round"
+                    stroke-dasharray="276.46"
+                    stroke-dashoffset="0"
+                    style="transition: stroke-dashoffset 0.95s linear"/>
+          </svg>
+          <div class="ring-num" id="plank-secs">30</div>
+        </div>
+        <div class="ring-sub">segundos restantes</div>
+      </div>
+    </div>
+
+    <div class="ex-actions">
+      <button class="btn btn-success" id="btn-done"  onclick="completeSet()">
+        ✓&ensp;Completar serie
+      </button>
+      <button class="btn btn-primary" id="btn-plank" onclick="startPlank()" style="display:none">
+        ▶&ensp;Iniciar plancha
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════
+     SCREEN: REST
+════════════════════════════════════ -->
+<div id="s-rest" class="screen">
+  <div class="prog-header">
+    <div class="prog-row">
+      <span id="r-prog-txt">Ejercicio 1 de 5</span>
+      <span class="prog-pct" id="r-prog-pct">0%</span>
+    </div>
+    <div class="prog-track">
+      <div class="prog-fill" id="r-prog-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="rest-body">
+    <div class="rest-title" id="rest-title">Descansando entre series</div>
+
+    <div class="rest-ring-box">
+      <svg viewBox="0 0 100 100" style="transform:rotate(-90deg)">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="#1a2235" stroke-width="6"/>
+        <circle id="rest-ring" cx="50" cy="50" r="44" fill="none"
+                stroke="#fb923c" stroke-width="6"
+                stroke-linecap="round"
+                stroke-dasharray="276.46"
+                stroke-dashoffset="0"
+                style="transition: stroke-dashoffset 0.95s linear"/>
+      </svg>
+      <div class="rest-num">
+        <span id="rest-secs">60</span>
+        <span class="rest-num-unit">seg</span>
+      </div>
+    </div>
+
+    <div class="rest-divider"></div>
+    <div class="rest-next-lbl">A continuación</div>
+    <div class="rest-next-val" id="rest-next">Serie 2 de 3</div>
+  </div>
+
+  <button class="btn btn-ghost" onclick="skipRest()">Saltar descanso →</button>
+</div>
+
+<!-- ════════════════════════════════════
+     SCREEN: COMPLETE
+════════════════════════════════════ -->
+<div id="s-done" class="screen">
+  <div class="done-body">
+    <div class="done-emoji">🏅</div>
+    <div class="done-title">¡Rutina completada!</div>
+
+    <div class="done-time-wrap">
+      <div class="done-time" id="done-time">0:00</div>
+      <div class="done-time-lbl">tiempo total</div>
+    </div>
+
+    <div class="done-streak" id="done-streak"></div>
+
+    <div class="done-exercises" id="done-exercises"></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="goHome()">Volver al inicio</button>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
