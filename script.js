@@ -1,12 +1,21 @@
 // ══════════════════════════════════════════════
 // CONFIGURATION
 // ══════════════════════════════════════════════
-const EX = [
+const ROUTINE_A = [
   { name: 'Sentadilla',                icon: '🏋️', tgt: 15, unit: 'repeticiones',    timer: false },
   { name: 'Estocada inversa',          icon: '🦵', tgt: 10, unit: 'reps por pierna', timer: false },
   { name: 'Puente de glúteos',         icon: '💪', tgt: 20, unit: 'repeticiones',    timer: false },
   { name: 'Plancha',                   icon: '⏱️', tgt: 30, unit: 'segundos',        timer: true  },
   { name: 'Elevación de pantorrillas', icon: '👟', tgt: 20, unit: 'repeticiones',    timer: false },
+];
+
+const ROUTINE_B = [
+  { name: 'Sentadilla búlgara',       icon: '🦵', tgt: 10, unit: 'reps por pierna', timer: false },
+  { name: 'Peso muerto a una pierna', icon: '⚖️', tgt: 10, unit: 'reps por pierna', timer: false },
+  { name: 'Plancha lateral',          icon: '⏱️', tgt: 20, unit: 'seg por lado',    timer: true  },
+  { name: 'Marcha de glúteos',        icon: '🍑', tgt: 10, unit: 'reps por pierna', timer: false },
+  { name: 'Sentadilla isométrica',    icon: '🧱', tgt: 30, unit: 'segundos',        timer: true  },
+  { name: 'Superman',                 icon: '🦸', tgt: 12, unit: 'repeticiones',    timer: false },
 ];
 
 const ROUNDS     = 3;
@@ -18,6 +27,9 @@ const STORE_KEY  = 'runner-strength-v1';
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
+let currentRoutineKey = 'A';
+function currentExercises() { return currentRoutineKey === 'B' ? ROUTINE_B : ROUTINE_A; }
+
 let st = {};
 
 function resetState() {
@@ -41,10 +53,10 @@ function resetState() {
 // HELPERS
 // ══════════════════════════════════════════════
 const $    = id => document.getElementById(id);
-const ex   = ()  => EX[st.exIdx];
+const ex   = ()  => currentExercises()[st.exIdx];
 
 function pct() {
-  return Math.round(st.totalDone / (EX.length * ROUNDS) * 100);
+  return Math.round(st.totalDone / (currentExercises().length * ROUNDS) * 100);
 }
 
 function fmtSecs(s) {
@@ -116,26 +128,38 @@ function loadHistory() {
   catch { return []; }
 }
 
-function saveRun(secs) {
+function saveRun(secs, routine = 'A') {
   const hist = loadHistory();
   const now  = new Date();
-  hist.unshift({ date: localDateStr(now), ts: now.toISOString(), secs });
+  hist.unshift({ date: localDateStr(now), ts: now.toISOString(), secs, routine });
   localStorage.setItem(STORE_KEY, JSON.stringify(hist.slice(0, 10)));
 }
 
 function calcStreak(hist) {
   if (!hist.length) return 0;
-  const dates = [...new Set(hist.map(h => h.date))].sort().reverse();
-  const today = localDateStr();
-  const yest  = localDateStr(new Date(Date.now() - 86400000));
-  // Streak only alive if trained today or yesterday (haven't broken it yet today)
-  if (dates[0] !== today && dates[0] !== yest) return 0;
-  let n = 1;
-  for (let i = 1; i < dates.length; i++) {
-    // Use noon to avoid DST edge cases
-    const a = new Date(dates[i - 1] + 'T12:00:00');
-    const b = new Date(dates[i] + 'T12:00:00');
-    if (Math.round((a - b) / 86400000) === 1) n++;
+  const trainedDates = new Set(hist.map(h => h.date));
+  const today        = localDateStr();
+  const todayDow     = new Date(today + 'T12:00:00').getDay(); // 0=Sun,1=Mon,...
+  const todayIsScheduled = todayDow === 1 || todayDow === 3 || todayDow === 5;
+
+  // Build list of the last 60 scheduled days (Mon/Wed/Fri), most recent first
+  const scheduled = [];
+  const d = new Date(today + 'T12:00:00');
+  while (scheduled.length < 60) {
+    const dow = d.getDay();
+    if (dow === 1 || dow === 3 || dow === 5) scheduled.push(localDateStr(d));
+    d.setDate(d.getDate() - 1);
+  }
+
+  // If today is scheduled but not yet trained, skip it for the alive check
+  // (keep the streak — the user still has time today)
+  const checkFrom = (todayIsScheduled && !trainedDates.has(today)) ? 1 : 0;
+
+  if (!trainedDates.has(scheduled[checkFrom])) return 0;
+
+  let n = 0;
+  for (let i = checkFrom; i < scheduled.length; i++) {
+    if (trainedDates.has(scheduled[i])) n++;
     else break;
   }
   return n;
@@ -164,7 +188,7 @@ function renderHome() {
 
   $('streak-num').textContent  = streak;
   $('streak-icon').textContent = streak >= 5 ? '🔥' : streak >= 2 ? '✨' : '⚡';
-  $('streak-lbl').textContent  = streak === 1 ? 'día de racha' : 'días de racha';
+  $('streak-lbl').textContent  = streak === 1 ? 'entrenamiento seguido' : 'entrenamientos seguidos';
 
   const listEl = $('hist-list');
 
@@ -179,10 +203,13 @@ function renderHome() {
       weekday: 'short', day: 'numeric', month: 'short',
     });
     const timeStr = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+    const badge   = r.routine
+      ? `<span class="hist-badge hist-badge-${r.routine.toLowerCase()}">${r.routine}</span>`
+      : '';
     return `
       <div class="hist-item">
         <div>
-          <div class="hist-date">${dateStr}</div>
+          <div class="hist-date">${dateStr}${badge}</div>
           <div class="hist-time">${timeStr}</div>
         </div>
         <div class="hist-dur">${fmtSecs(r.secs)}</div>
@@ -199,7 +226,8 @@ function goHome() {
 // ══════════════════════════════════════════════
 // WORKOUT SCREEN
 // ══════════════════════════════════════════════
-function startWorkout() {
+function startWorkout(routineKey) {
+  currentRoutineKey = routineKey || 'A';
   resetState();
   st.start = Date.now();
   requestWakeLock();
@@ -210,7 +238,7 @@ function startWorkout() {
 function renderWorkout() {
   const e   = ex();
   const p   = pct();
-  const txt = `Ronda ${st.roundIdx + 1} de ${ROUNDS} · Ejercicio ${st.exIdx + 1} de ${EX.length}`;
+  const txt = `Ronda ${st.roundIdx + 1} de ${ROUNDS} · Ejercicio ${st.exIdx + 1} de ${currentExercises().length}`;
 
   setProgUI('w-prog-txt', 'w-prog-pct', 'w-prog-bar', txt, p);
 
@@ -261,7 +289,7 @@ function completeSet(silent = false) {
 
   st.totalDone++;
 
-  const isLastEx    = st.exIdx === EX.length - 1;
+  const isLastEx    = st.exIdx === currentExercises().length - 1;
   const isLastRound = st.roundIdx === ROUNDS - 1;
 
   if (isLastEx && isLastRound) {
@@ -280,7 +308,7 @@ function completeSet(silent = false) {
     });
   } else {
     // Rest before next exercise in same round
-    const nextEx = EX[st.exIdx + 1];
+    const nextEx = currentExercises()[st.exIdx + 1];
     startRest(REST_SET, 'set', `${nextEx.icon} ${nextEx.name}`, () => {
       st.exIdx++;
       st.plankOn = false;
@@ -329,7 +357,7 @@ function startRest(total, type, nextLabel, cb) {
   st.afterRest = cb;
 
   const p   = pct();
-  const txt = `Ronda ${st.roundIdx + 1} de ${ROUNDS} · Ejercicio ${st.exIdx + 1} de ${EX.length}`;
+  const txt = `Ronda ${st.roundIdx + 1} de ${ROUNDS} · Ejercicio ${st.exIdx + 1} de ${currentExercises().length}`;
   setProgUI('r-prog-txt', 'r-prog-pct', 'r-prog-bar', txt, p);
 
   $('rest-title').textContent = type === 'round'
@@ -373,7 +401,7 @@ function skipRest() {
 // ══════════════════════════════════════════════
 function finishWorkout() {
   const secs = Math.round((Date.now() - st.start) / 1000);
-  saveRun(secs);
+  saveRun(secs, currentRoutineKey);
   releaseWakeLock();
   sndDone();
   vibrate([100, 60, 100, 60, 200]);
@@ -382,11 +410,11 @@ function finishWorkout() {
 
   $('done-time').textContent = fmtSecs(secs);
   $('done-streak').textContent = streak > 0
-    ? `🔥 Racha: ${streak} ${streak === 1 ? 'día' : 'días'} consecutivos`
+    ? `🔥 Racha: ${streak} ${streak === 1 ? 'entrenamiento' : 'entrenamientos'} seguidos`
     : '';
 
   // Show exercise summary chips
-  $('done-exercises').innerHTML = EX.map(e =>
+  $('done-exercises').innerHTML = currentExercises().map(e =>
     `<div class="done-ex-chip">${e.icon} ${e.name}</div>`
   ).join('');
 

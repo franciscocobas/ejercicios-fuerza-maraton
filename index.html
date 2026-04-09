@@ -20,7 +20,7 @@
   <div class="home-top">
     <span class="app-icon">🏃</span>
     <div class="app-title">Fuerza Para Correr</div>
-    <div class="app-sub">5 ejercicios · 3 rondas · ~25 min</div>
+    <div class="app-sub">Fuerza para correr · 3 rondas</div>
   </div>
 
   <div class="streak-card mb-16">
@@ -29,7 +29,18 @@
     <div class="streak-lbl" id="streak-lbl">días de racha</div>
   </div>
 
-  <button class="btn btn-primary mb-24" onclick="startWorkout()">Comenzar rutina</button>
+  <div class="routine-grid mb-24">
+    <button class="btn-routine btn-routine-a" onclick="startWorkout('A')">
+      <div class="routine-key">A</div>
+      <div class="routine-name">Fuerza básica</div>
+      <div class="routine-meta">5 ejercicios · 3 rondas</div>
+    </button>
+    <button class="btn-routine btn-routine-b" onclick="startWorkout('B')">
+      <div class="routine-key">B</div>
+      <div class="routine-name">Fuerza unilateral</div>
+      <div class="routine-meta">6 ejercicios · 3 rondas</div>
+    </button>
+  </div>
 
   <div class="section-title">Historial reciente</div>
   <div class="hist-list" id="hist-list">
