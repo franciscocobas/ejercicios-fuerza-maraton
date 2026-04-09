@@ -1,4 +1,4 @@
-const CACHE = 'fuerza-correr-v2';
+const CACHE = 'fuerza-correr-v3';
 
 const ASSETS = [
   '/',

@@ -121,6 +121,72 @@ function sndDone() {
 }
 
 // ══════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey:            'AIzaSyDhoBWY5pqQHWy9X4_ku6nmd2ihtkWJoJU',
+  authDomain:        'ejercicios-casa.firebaseapp.com',
+  projectId:         'ejercicios-casa',
+  storageBucket:     'ejercicios-casa.firebasestorage.app',
+  messagingSenderId: '432820446852',
+  appId:             '1:432820446852:web:eae80b2d983059c964c4d1',
+};
+
+let db         = null;
+let currentUid = null;
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+
+    firebase.auth().signInAnonymously()
+      .then(result => { currentUid = result.user.uid; syncFromFirestore(); })
+      .catch(() => {});
+  } catch (e) {}
+}
+
+async function syncFromFirestore() {
+  if (!db || !currentUid) return;
+  try {
+    const snap = await db.collection('workouts')
+      .where('uid', '==', currentUid)
+      .orderBy('ts', 'desc')
+      .limit(20)
+      .get();
+
+    if (snap.empty) {
+      // First sync: upload existing local data to Firestore
+      const local = loadHistory();
+      for (const run of local) {
+        await db.collection('workouts').add({ ...run, uid: currentUid });
+      }
+      return;
+    }
+
+    // Merge cloud + local, deduplicate by ts
+    const cloud = snap.docs.map(d => {
+      const { date, ts, secs, routine } = d.data();
+      return { date, ts, secs, routine };
+    });
+    const allMap = new Map();
+    [...loadHistory(), ...cloud].forEach(r => allMap.set(r.ts, r));
+    const merged = [...allMap.values()]
+      .sort((a, b) => b.ts.localeCompare(a.ts))
+      .slice(0, 10);
+
+    localStorage.setItem(STORE_KEY, JSON.stringify(merged));
+    renderHome();
+  } catch (e) {}
+}
+
+async function saveRunToFirestore(run) {
+  if (!db || !currentUid) return;
+  try { await db.collection('workouts').add({ ...run, uid: currentUid }); }
+  catch (e) {}
+}
+
+// ══════════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════════
 function loadHistory() {
@@ -131,8 +197,10 @@ function loadHistory() {
 function saveRun(secs, routine = 'A') {
   const hist = loadHistory();
   const now  = new Date();
-  hist.unshift({ date: localDateStr(now), ts: now.toISOString(), secs, routine });
+  const run  = { date: localDateStr(now), ts: now.toISOString(), secs, routine };
+  hist.unshift(run);
   localStorage.setItem(STORE_KEY, JSON.stringify(hist.slice(0, 10)));
+  saveRunToFirestore(run); // async, non-blocking
 }
 
 function calcStreak(hist) {
@@ -468,3 +536,4 @@ function clearTimers() {
 // ══════════════════════════════════════════════
 resetState();
 renderHome();
+if (typeof firebase !== 'undefined') initFirebase();
