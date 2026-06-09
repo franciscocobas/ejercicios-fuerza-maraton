@@ -140,10 +140,31 @@ function initFirebase() {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
 
-    firebase.auth().signInAnonymously()
-      .then(result => { currentUid = result.user.uid; syncFromFirestore(); })
-      .catch(() => {});
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        currentUid = user.uid;
+        syncFromFirestore();
+        show('s-home');
+      } else {
+        currentUid = null;
+        show('s-login');
+      }
+    });
   } catch (e) {}
+}
+
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider)
+    .catch(err => {
+      if (err.code === 'auth/popup-blocked') {
+        firebase.auth().signInWithRedirect(provider);
+      }
+    });
+}
+
+function signOut() {
+  firebase.auth().signOut();
 }
 
 async function syncFromFirestore() {
@@ -535,5 +556,9 @@ function clearTimers() {
 // INIT
 // ══════════════════════════════════════════════
 resetState();
-renderHome();
-if (typeof firebase !== 'undefined') initFirebase();
+if (typeof firebase !== 'undefined') {
+  initFirebase();
+} else {
+  renderHome();
+  show('s-home');
+}

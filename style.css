@@ -106,10 +106,57 @@ body {
   font-weight: 500;
 }
 
+/* ── LOGIN SCREEN ── */
+.login-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn-google:active { transform: scale(0.95); opacity: 0.82; }
+
 /* ── HOME SCREEN ── */
 .home-top {
+  position: relative;
   text-align: center;
   padding: 20px 0 28px;
+}
+
+.btn-signout {
+  position: absolute;
+  top: 20px;
+  right: 0;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app-icon { font-size: 48px; display: block; margin-bottom: 10px; }
